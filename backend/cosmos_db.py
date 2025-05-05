@@ -15,7 +15,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from markdown2 import markdown
 import hashlib
-
+import re
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 
 load_dotenv()
 
@@ -220,109 +222,133 @@ class CosmosDBManager:
              seen.add(line)
      return "\n".join(cleaned_lines)
     
-def generate_pdf_from_text(self, text):
-    """Génère un PDF à partir du texte de la fiche de poste avec un formatage amélioré"""
-    clean_text = self.clean_duplicate_lines(text)
-    buffer = io.BytesIO()
-    
-    # Configurer le document PDF avec marges adaptées
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=40,
-        rightMargin=40,
-        topMargin=30,
-        bottomMargin=30
-    )
-    
-    # Styles pour le PDF
-    styles = getSampleStyleSheet()
-    
-    # Style pour le titre principal
-    title_style = ParagraphStyle(
-        name='TitleStyle',
-        parent=styles['Heading1'],
-        fontSize=18,
-        fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#006666"),
-        alignment=1,  # Centré
-        spaceAfter=15,
-        spaceBefore=10,
-        leading=22
-    )
-    
-    # Style pour les sous-titres (sections)
-    section_style = ParagraphStyle(
-        name='SectionStyle',
-        parent=styles['Heading2'],
-        fontSize=14,
-        fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#00A8A8"),
-        spaceBefore=15,
-        spaceAfter=8,
-        leading=16
-    )
-    
-    # Style pour le texte normal
-    body_style = ParagraphStyle(
-        name='BodyStyle',
-        parent=styles['Normal'],
-        fontSize=11,
-        fontName="Helvetica",
-        leading=14,
-        spaceBefore=2,
-        spaceAfter=8
-    )
-    
-    # Style pour les listes
-    list_style = ParagraphStyle(
-        name='ListStyle',
-        parent=styles['Normal'],
-        fontSize=11,
-        fontName="Helvetica",
-        leftIndent=20,
-        leading=14,
-        spaceBefore=2,
-        spaceAfter=2
-    )
-    
-    # Style pour le pied de page
-    footer_style = ParagraphStyle(
-        name='FooterStyle',
-        parent=styles['Normal'],
-        fontSize=9,
-        fontName="Helvetica-Oblique",
-        textColor=colors.HexColor("#666666"),
-        alignment=1,  # Centré
-        spaceBefore=10
-    )
-    
-    # Analyser le texte et construire les paragraphes
-    elements = []
-    
-    # Ajouter un logo ou en-tête
-    # elements.append(Image("path/to/logo.png", width=100, height=30))
-    # elements.append(Spacer(1, 10))
-    
-    # Traiter chaque ligne du texte
-    lines = clean_text.split('\n')
-    in_list = False
-    list_items = []
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        # Titre principal (première ligne contenant le titre du poste)
-        if "FICHE DE POSTE" in line:
-            elements.append(Paragraph(line, title_style))
-            elements.append(Spacer(1, 10))
-            continue
-            
-        # Sous-titres des sections (commencent par un numéro)
-        if re.match(r"^[0-9]+\.\s", line) or line.startswith("##"):
-            # Si on était dans une liste, on l'ajoute avant de passer à la section
+    def generate_pdf_from_text(self, text):
+        """Génère un PDF à partir du texte de la fiche de poste avec un formatage amélioré"""
+        clean_text = self.clean_duplicate_lines(text)
+        buffer = io.BytesIO()
+        
+        # Configurer le document PDF avec marges adaptées
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            leftMargin=40,
+            rightMargin=40,
+            topMargin=30,
+            bottomMargin=30
+        )
+        
+        # Styles pour le PDF
+        styles = getSampleStyleSheet()
+        
+        # Style pour le titre principal
+        title_style = ParagraphStyle(
+            name='TitleStyle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            fontName="Helvetica-Bold",
+            textColor=colors.HexColor("#006666"),
+            alignment=1,  # Centré
+            spaceAfter=15,
+            spaceBefore=10,
+            leading=22
+        )
+        
+        # Style pour les sous-titres (sections)
+        section_style = ParagraphStyle(
+            name='SectionStyle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            fontName="Helvetica-Bold",
+            textColor=colors.HexColor("#00A8A8"),
+            spaceBefore=15,
+            spaceAfter=8,
+            leading=16
+        )
+        
+        # Style pour le texte normal
+        body_style = ParagraphStyle(
+            name='BodyStyle',
+            parent=styles['Normal'],
+            fontSize=11,
+            fontName="Helvetica",
+            leading=14,
+            spaceBefore=2,
+            spaceAfter=8
+        )
+        
+        # Style pour les listes
+        list_style = ParagraphStyle(
+            name='ListStyle',
+            parent=styles['Normal'],
+            fontSize=11,
+            fontName="Helvetica",
+            leftIndent=20,
+            leading=14,
+            spaceBefore=2,
+            spaceAfter=2
+        )
+        
+        # Style pour le pied de page
+        footer_style = ParagraphStyle(
+            name='FooterStyle',
+            parent=styles['Normal'],
+            fontSize=9,
+            fontName="Helvetica-Oblique",
+            textColor=colors.HexColor("#666666"),
+            alignment=1,  # Centré
+            spaceBefore=10
+        )
+        
+        # Analyser le texte et construire les paragraphes
+        elements = []
+        
+        # Ajouter un logo ou en-tête
+        # elements.append(Image("path/to/logo.png", width=100, height=30))
+        # elements.append(Spacer(1, 10))
+        
+        # Traiter chaque ligne du texte
+        lines = clean_text.split('\n')
+        in_list = False
+        list_items = []
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Titre principal (première ligne contenant le titre du poste)
+            if "FICHE DE POSTE" in line:
+                elements.append(Paragraph(line, title_style))
+                elements.append(Spacer(1, 10))
+                continue
+                
+            # Sous-titres des sections (commencent par un numéro)
+            if re.match(r"^[0-9]+\.\s", line) or line.startswith("##"):
+                # Si on était dans une liste, on l'ajoute avant de passer à la section
+                if in_list and list_items:
+                    for item in list_items:
+                        elements.append(Paragraph(f"• {item}", list_style))
+                    list_items = []
+                    in_list = False
+                    elements.append(Spacer(1, 5))
+                    
+                # Enlever les ## pour les titres en markdown
+                if line.startswith("##"):
+                    line = line.replace("##", "").strip()
+                    
+                elements.append(Paragraph(line, section_style))
+                continue
+                
+            # Éléments de liste (commencent par un tiret ou une puce)
+            if line.startswith("-") or line.startswith("•"):
+                in_list = True
+                # Enlever le marqueur de liste et les espaces
+                line = line[1:].strip() if line.startswith("-") else line[1:].strip()
+                list_items.append(line)
+                continue
+                
+            # Texte normal
+            # Si on était dans une liste, on l'ajoute avant de passer au texte normal
             if in_list and list_items:
                 for item in list_items:
                     elements.append(Paragraph(f"• {item}", list_style))
@@ -330,49 +356,25 @@ def generate_pdf_from_text(self, text):
                 in_list = False
                 elements.append(Spacer(1, 5))
                 
-            # Enlever les ## pour les titres en markdown
-            if line.startswith("##"):
-                line = line.replace("##", "").strip()
+            # Mise en valeur des mots clés
+            if "**" in line:
+                # Convertir ** en balises de gras pour ReportLab
+                line = line.replace("**", "<b>", 1)
+                line = line.replace("**", "</b>", 1)
                 
-            elements.append(Paragraph(line, section_style))
-            continue
-            
-        # Éléments de liste (commencent par un tiret ou une puce)
-        if line.startswith("-") or line.startswith("•"):
-            in_list = True
-            # Enlever le marqueur de liste et les espaces
-            line = line[1:].strip() if line.startswith("-") else line[1:].strip()
-            list_items.append(line)
-            continue
-            
-        # Texte normal
-        # Si on était dans une liste, on l'ajoute avant de passer au texte normal
-        if in_list and list_items:
-            for item in list_items:
-                elements.append(Paragraph(f"• {item}", list_style))
-            list_items = []
-            in_list = False
-            elements.append(Spacer(1, 5))
-            
-        # Mise en valeur des mots clés
-        if "**" in line:
-            # Convertir ** en balises de gras pour ReportLab
-            line = line.replace("**", "<b>", 1)
-            line = line.replace("**", "</b>", 1)
-            
-        elements.append(Paragraph(line, body_style))
-    
-    # Ajouter un pied de page
-    elements.append(Spacer(1, 20))
-    elements.append(Paragraph("© HiRo Site - Confidentiel - Ne pas diffuser", footer_style))
-    
-    # Construire le document
-    doc.build(elements)
-    buffer.seek(0)
-    
-    # Convertir en Base64 pour le stockage
-    pdf_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-    return pdf_base64
+            elements.append(Paragraph(line, body_style))
+        
+        # Ajouter un pied de page
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph("© HiRo Site - Confidentiel - Ne pas diffuser", footer_style))
+        
+        # Construire le document
+        doc.build(elements)
+        buffer.seek(0)
+        
+        # Convertir en Base64 pour le stockage
+        pdf_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+        return pdf_base64
 
  ##    def generate_pdf_from_text(self, text):
 ## 
